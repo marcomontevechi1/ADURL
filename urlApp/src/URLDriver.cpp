@@ -22,6 +22,8 @@
 #include <Magick++.h>
 using namespace Magick;
 
+#include <curl/curl.h>
+
 #include "ADDriver.h"
 
 #include <epicsExport.h>
@@ -41,6 +43,7 @@ public:
     /* These are the methods that we override from ADDriver */
     virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
     virtual void report(FILE *fp, int details);
+    void initializeCurl();
     void URLTask(); /**< Should be private, but gets called from C, so must be public */
 
 protected:
@@ -56,6 +59,10 @@ private:
     Image image;
     epicsEventId startEventId;
     epicsEventId stopEventId;
+
+    /*Curl pointer*/
+    CURL *curl = NULL;
+    CURLcode res;
 };
 
 #define URLNameString "URL_NAME"
@@ -65,6 +72,7 @@ private:
 asynStatus URLDriver::readImage()
 {
     char URLString[MAX_FILENAME_LEN];
+    int usecurl;
     size_t dims[3];
     int ndims;
     int nrows, ncols;
@@ -79,6 +87,8 @@ asynStatus URLDriver::readImage()
     static const char *functionName = "readImage";
     
     getStringParam(URLName, sizeof(URLString), URLString);
+    getIntegerParam(useCurl, &usecurl);
+
     if (strlen(URLString) == 0) return(asynError);
     try {
         image.read(URLString);
@@ -365,6 +375,16 @@ void URLDriver::report(FILE *fp, int details)
     ADDriver::report(fp, details);
 }
 
+void URLDriver::initializeCurl() {
+
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+    this->curl = curl_easy_init();
+    if (!curl){
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
+                  "%s:%s: ERROR, cannot initialize curl pointer.\n", driverName, __func__);
+    }
+}
+
 /** Constructor for URLDriver; most parameters are simply passed to ADDriver::ADDriver.
   * After calling the base class constructor this method creates a thread to read the URL images,
   * and sets reasonable default values for parameters defined in this class, asynNDArrayDriver and ADDriver.
@@ -431,6 +451,9 @@ URLDriver::URLDriver(const char *portName, int maxBuffers, size_t maxMemory,
             driverName, functionName);
         return;
     }
+
+    this->initializeCurl();
+
 }
 
 /** Configuration command, called directly or from iocsh */

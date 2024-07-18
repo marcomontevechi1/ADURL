@@ -45,6 +45,7 @@ public:
 
 protected:
     int URLName;
+    int useCurl;
     #define FIRST_URL_DRIVER_PARAM URLName
 
 private:
@@ -58,6 +59,7 @@ private:
 };
 
 #define URLNameString "URL_NAME"
+#define UseCurlString "USE_CURL"
 
 
 asynStatus URLDriver::readImage()
@@ -402,6 +404,7 @@ URLDriver::URLDriver(const char *portName, int maxBuffers, size_t maxMemory,
     }
 
     createParam(URLNameString,      asynParamOctet, &URLName);
+    createParam(UseCurlString,      asynParamInt32, &useCurl);
 
     /* Set some default values for parameters */
     status =  setStringParam (ADManufacturer, "URL Driver");

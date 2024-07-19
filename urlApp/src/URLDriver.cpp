@@ -50,6 +50,7 @@ protected:
     int URLName;
     int useCurl;
     int curlOptHttp;
+    int curlOptSSLVerify;
     #define FIRST_URL_DRIVER_PARAM URLName
 
 private:
@@ -74,7 +75,7 @@ private:
 #define URLNameString         "URL_NAME"
 #define UseCurlString         "USE_CURL"
 #define CurlOptHttpAuthString "ASYN_CURLOPT_HTTPAUTH"
-
+#define CurlOptSSLVerifyHost  "ASYN_CURLOPT_SSL_VERIFYHOST"
 
 asynStatus URLDriver::readImage()
 {
@@ -317,7 +318,7 @@ asynStatus URLDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
 {
     int function = pasynUser->reason;
     int adstatus;
-    int curlHttp;
+    int curlVal;
     asynStatus status = asynSuccess;
 
     /* Set the parameter and readback in the parameter library.  This may be overwritten when we read back the
@@ -337,8 +338,11 @@ asynStatus URLDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
             epicsEventSignal(this->stopEventId);
         }
     } else if (function == curlOptHttp) {
-        getIntegerParam(curlOptHttp, &curlHttp);
-        curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CurlHttpOptions[curlHttp]);
+        getIntegerParam(curlOptHttp, &curlVal);
+        curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CurlHttpOptions[curlVal]);
+    } else if (function == curlOptSSLVerify) {
+        getIntegerParam(curlOptSSLVerify, &curlVal);
+        curl_easy_setopt(curl, CURLOPT_HTTPAUTH, (long)curlVal);
     } else {
         /* If this parameter belongs to a base class call its method */
         if (function < FIRST_URL_DRIVER_PARAM) status = ADDriver::writeInt32(pasynUser, value);
@@ -437,6 +441,7 @@ URLDriver::URLDriver(const char *portName, int maxBuffers, size_t maxMemory,
     createParam(URLNameString,         asynParamOctet, &URLName);
     createParam(UseCurlString,         asynParamInt32, &useCurl);
     createParam(CurlOptHttpAuthString, asynParamInt32, &curlOptHttp);
+    createParam(CurlOptSSLVerifyHost,  asynParamInt32, &curlOptSSLVerify);
 
     /* Set some default values for parameters */
     status =  setStringParam (ADManufacturer, "URL Driver");

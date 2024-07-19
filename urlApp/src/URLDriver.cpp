@@ -49,6 +49,7 @@ public:
 protected:
     int URLName;
     int useCurl;
+    int curlOptHttp;
     #define FIRST_URL_DRIVER_PARAM URLName
 
 private:
@@ -63,10 +64,16 @@ private:
     /*Curl pointer*/
     CURL *curl = NULL;
     CURLcode res;
+
+    /*Array to translate Curl options*/
+    long unsigned int CurlHttpOptions [10] = {CURLAUTH_BASIC, CURLAUTH_DIGEST, CURLAUTH_DIGEST_IE, CURLAUTH_BEARER, 
+                         CURLAUTH_NEGOTIATE, CURLAUTH_NTLM, CURLAUTH_NTLM_WB, CURLAUTH_ANY, 
+                         CURLAUTH_ANYSAFE, CURLAUTH_ONLY};
 };
 
-#define URLNameString "URL_NAME"
-#define UseCurlString "USE_CURL"
+#define URLNameString         "URL_NAME"
+#define UseCurlString         "USE_CURL"
+#define CurlOptHttpAuthString "ASYN_CURLOPT_HTTPAUTH"
 
 
 asynStatus URLDriver::readImage()
@@ -310,6 +317,7 @@ asynStatus URLDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
 {
     int function = pasynUser->reason;
     int adstatus;
+    int curlHttp;
     asynStatus status = asynSuccess;
 
     /* Set the parameter and readback in the parameter library.  This may be overwritten when we read back the
@@ -328,6 +336,9 @@ asynStatus URLDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
             /* Send the stop event */
             epicsEventSignal(this->stopEventId);
         }
+    } else if (function == curlOptHttp) {
+        getIntegerParam(curlOptHttp, &curlHttp);
+        curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CurlHttpOptions[curlHttp]);
     } else {
         /* If this parameter belongs to a base class call its method */
         if (function < FIRST_URL_DRIVER_PARAM) status = ADDriver::writeInt32(pasynUser, value);
@@ -423,8 +434,9 @@ URLDriver::URLDriver(const char *portName, int maxBuffers, size_t maxMemory,
         return;
     }
 
-    createParam(URLNameString,      asynParamOctet, &URLName);
-    createParam(UseCurlString,      asynParamInt32, &useCurl);
+    createParam(URLNameString,         asynParamOctet, &URLName);
+    createParam(UseCurlString,         asynParamInt32, &useCurl);
+    createParam(CurlOptHttpAuthString, asynParamInt32, &curlOptHttp);
 
     /* Set some default values for parameters */
     status =  setStringParam (ADManufacturer, "URL Driver");

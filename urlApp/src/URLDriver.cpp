@@ -42,6 +42,7 @@ public:
 
     /* These are the methods that we override from ADDriver */
     virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
+    virtual asynStatus writeOctet(asynUser *pasynUser, const char *value, size_t nChars, size_t *nActual);
     virtual void report(FILE *fp, int details);
     void initializeCurl();
     void URLTask(); /**< Should be private, but gets called from C, so must be public */
@@ -52,7 +53,9 @@ protected:
     int curlOptHttp;
     int curlOptSSLHost;
     int curlOptSSLPeer;
+    int curlOptUsername;
     #define FIRST_URL_DRIVER_PARAM URLName
+    #define MAX_USERNAME_CHARS 128
 
 private:
     /* These are the methods that are new to this class */
@@ -78,6 +81,7 @@ private:
 #define CurlOptHttpAuthString "ASYN_CURLOPT_HTTPAUTH"
 #define CurlOptSSLVerifyHost  "ASYN_CURLOPT_SSL_VERIFYHOST"
 #define CurlOptSSLVerifyPeer  "ASYN_CURLOPT_SSL_VERIFYPEER"
+#define CurlOptUsernameString "ASYN_CURLOPT_USERNAME"
 
 asynStatus URLDriver::readImage()
 {
@@ -367,7 +371,29 @@ asynStatus URLDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
     return status;
 }
 
+asynStatus URLDriver::writeOctet(asynUser *pasynUser, const char *value, size_t nChars, size_t *nActual)
+{
 
+    int addr = 0;
+    int function = pasynUser->reason;
+    int status = 0;
+    char userName[MAX_USERNAME_CHARS] = {'0'};
+    
+    status |= setStringParam(addr, function, (char *)value);
+
+    if (function < FIRST_URL_DRIVER_PARAM) {
+        status |= ADDriver::writeOctet(pasynUser, value, nChars, nActual);
+
+    } else if (function == curlOptUsername) {
+        getStringParam(curlOptUsername, MAX_USERNAME_CHARS, userName);
+        curl_easy_setopt(curl, CURLOPT_USERNAME, userName);
+    }
+
+    callParamCallbacks(addr);
+    *nActual = nChars;
+    return (asynStatus)status;
+
+}
 
 
 /** Report status of the driver.
@@ -448,6 +474,7 @@ URLDriver::URLDriver(const char *portName, int maxBuffers, size_t maxMemory,
     createParam(CurlOptHttpAuthString, asynParamInt32, &curlOptHttp);
     createParam(CurlOptSSLVerifyHost,  asynParamInt32, &curlOptSSLHost);
     createParam(CurlOptSSLVerifyPeer,  asynParamInt32, &curlOptSSLPeer);
+    createParam(CurlOptUsernameString, asynParamOctet, &curlOptUsername);
 
     /* Set some default values for parameters */
     status =  setStringParam (ADManufacturer, "URL Driver");

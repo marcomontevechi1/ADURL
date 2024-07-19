@@ -197,7 +197,7 @@ record (mbbo, "$(P)$(R)CurlOptHTTPAuth")
     field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))ASYN_CURLOPT_HTTPAUTH")
 }
 
-record (mbbo, "$(P)$(R)CurlOptSSLVerify")
+record (mbbo, "$(P)$(R)CurlOptSSLHost")
 {
     field(DESC, "Verify Host SSL certificate")
     field(DTYP, "asynInt32")
@@ -206,4 +206,14 @@ record (mbbo, "$(P)$(R)CurlOptSSLVerify")
     field(TWST, "YES")
     field(TWVL, "2")
     field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))ASYN_CURLOPT_SSL_VERIFYHOST")
+}
+
+record (bo, "$(P)$(R)CurlOptSSLPeer")
+{
+    field(DESC, "Verify SSL peer")
+    field(DTYP, "asynInt32")
+    field(PINI, "YES")
+    field(ZNAM, "NO")
+    field(ONAM, "YES")
+    field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))ASYN_CURLOPT_SSL_VERIFYPEER")
 }

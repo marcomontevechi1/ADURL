@@ -50,7 +50,8 @@ protected:
     int URLName;
     int useCurl;
     int curlOptHttp;
-    int curlOptSSLVerify;
+    int curlOptSSLHost;
+    int curlOptSSLPeer;
     #define FIRST_URL_DRIVER_PARAM URLName
 
 private:
@@ -76,6 +77,7 @@ private:
 #define UseCurlString         "USE_CURL"
 #define CurlOptHttpAuthString "ASYN_CURLOPT_HTTPAUTH"
 #define CurlOptSSLVerifyHost  "ASYN_CURLOPT_SSL_VERIFYHOST"
+#define CurlOptSSLVerifyPeer  "ASYN_CURLOPT_SSL_VERIFYPEER"
 
 asynStatus URLDriver::readImage()
 {
@@ -340,9 +342,12 @@ asynStatus URLDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
     } else if (function == curlOptHttp) {
         getIntegerParam(curlOptHttp, &curlVal);
         curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CurlHttpOptions[curlVal]);
-    } else if (function == curlOptSSLVerify) {
-        getIntegerParam(curlOptSSLVerify, &curlVal);
+    } else if (function == curlOptSSLHost) {
+        getIntegerParam(curlOptSSLHost, &curlVal);
         curl_easy_setopt(curl, CURLOPT_HTTPAUTH, (long)curlVal);
+    } else if (function == curlOptSSLPeer) {
+        getIntegerParam(curlOptSSLPeer, &curlVal);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, (long)curlVal);
     } else {
         /* If this parameter belongs to a base class call its method */
         if (function < FIRST_URL_DRIVER_PARAM) status = ADDriver::writeInt32(pasynUser, value);
@@ -441,7 +446,8 @@ URLDriver::URLDriver(const char *portName, int maxBuffers, size_t maxMemory,
     createParam(URLNameString,         asynParamOctet, &URLName);
     createParam(UseCurlString,         asynParamInt32, &useCurl);
     createParam(CurlOptHttpAuthString, asynParamInt32, &curlOptHttp);
-    createParam(CurlOptSSLVerifyHost,  asynParamInt32, &curlOptSSLVerify);
+    createParam(CurlOptSSLVerifyHost,  asynParamInt32, &curlOptSSLHost);
+    createParam(CurlOptSSLVerifyPeer,  asynParamInt32, &curlOptSSLPeer);
 
     /* Set some default values for parameters */
     status =  setStringParam (ADManufacturer, "URL Driver");

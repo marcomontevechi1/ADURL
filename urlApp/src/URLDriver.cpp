@@ -92,7 +92,7 @@ private:
 size_t URLDriver::curlWriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
 {
     ((std::vector<char>*)userp)->insert(((std::vector<char>*)userp)->end(), (char*)contents, (char*)contents + size * nmemb);
-    return size + nmemb;
+    return size * nmemb;
 }
 
 asynStatus URLDriver::readImage()

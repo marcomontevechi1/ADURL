@@ -218,11 +218,21 @@ record (bo, "$(P)$(R)CurlOptSSLPeer")
     field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))ASYN_CURLOPT_SSL_VERIFYPEER")
 }
 
-record(waveform, "$(P)$(R)CurlUsername")
+record(waveform, "$(P)$(R)CurlAuthFile") 
 {
-    field(DESC, "Username for curl auth")
-    field(DTYP, "asynOctetWrite")
-    field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))ASYN_CURLOPT_USERNAME")
-    field(FTVL, "CHAR")
-    field(NELM, "128")
+    field(DESC,  "TOML file with auth. credentials")
+    field(DTYP,  "asynOctetWrite")
+    field(INP,   "@asyn($(PORT),$(ADDR),$(TIMEOUT))ASYN_CURL_AUTHFILE")
+    field(FTVL,  "CHAR")
+    field(NELM,  "256")
+}
+
+record (bi, "$(P)$(R)CurlValidAuth")
+{
+    field(DESC, "Is Curl authentication valid?")
+    field(DTYP, "asynInt32")
+    field(ZNAM, "NO")
+    field(ONAM, "YES")
+    field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))ASYN_CURL_VALID_AUTH")
+    field(SCAN, "I/O Intr")
 }

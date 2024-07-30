@@ -46,6 +46,7 @@ public:
     virtual asynStatus writeOctet(asynUser *pasynUser, const char *value, size_t nChars, size_t *nActual);
     virtual void report(FILE *fp, int details);
     asynStatus setCurlAuth();
+    static size_t curlWriteCallback(void* contents, size_t size, size_t nmemb, void* userp);
     void initializeCurl();
     void URLTask(); /**< Should be private, but gets called from C, so must be public */
 
@@ -69,9 +70,10 @@ private:
     epicsEventId startEventId;
     epicsEventId stopEventId;
 
-    /*Curl pointer*/
+    /*Curl pointer and buffer*/
     CURL *curl = NULL;
     CURLcode res;
+    std::vector<char> readBuffer;
 
     /*Array to translate Curl options*/
     long unsigned int CurlHttpOptions [10] = {CURLAUTH_BASIC, CURLAUTH_DIGEST, CURLAUTH_DIGEST_IE, CURLAUTH_BEARER, 
@@ -86,6 +88,12 @@ private:
 #define CurlOptSSLVerifyPeer  "ASYN_CURLOPT_SSL_VERIFYPEER"
 #define CurlAuthFileString    "ASYN_CURL_AUTHFILE"
 #define CurlValidAuthString   "ASYN_CURL_VALID_AUTH"
+
+size_t URLDriver::curlWriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
+{
+    ((std::vector<char>*)userp)->insert(((std::vector<char>*)userp)->end(), (char*)contents, (char*)contents + size * nmemb);
+    return size + nmemb;
+}
 
 asynStatus URLDriver::readImage()
 {
@@ -458,6 +466,10 @@ void URLDriver::initializeCurl() {
         asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
                   "%s:%s: ERROR, cannot initialize curl pointer.\n", driverName, __func__);
     }
+
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlWriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, readBuffer);
+
 }
 
 /** Constructor for URLDriver; most parameters are simply passed to ADDriver::ADDriver.

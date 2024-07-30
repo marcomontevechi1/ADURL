@@ -431,8 +431,8 @@ asynStatus URLDriver::setCurlAuth()
     try{
       const toml::value toml_file = toml::parse(paramString);
       setIntegerParam(curlValidAuth, 1);
-      curl_easy_setopt(curl, CURLOPT_USERNAME, toml_file.at("user"));
-      curl_easy_setopt(curl, CURLOPT_PASSWORD, toml_file.at("password"));
+      curl_easy_setopt(curl, CURLOPT_USERNAME, toml_file.at("user").as_string().c_str());
+      curl_easy_setopt(curl, CURLOPT_PASSWORD, toml_file.at("password").as_string().c_str());
     } catch(const toml::syntax_error& err) {
         status = (int)asynError;
         asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,

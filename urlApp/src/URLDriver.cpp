@@ -523,10 +523,15 @@ URLDriver::URLDriver(const char *portName, int maxBuffers, size_t maxMemory,
     status |= setStringParam (ADModel, "GraphicsMagick");
     epicsSnprintf(versionString, sizeof(versionString), "%d.%d.%d", 
                   DRIVER_VERSION, DRIVER_REVISION, DRIVER_MODIFICATION);
-    setStringParam(NDDriverVersion, versionString);
-    setStringParam(ADSDKVersion, MagickLibVersionText);
-    setStringParam(ADSerialNumber, "No serial number");
+    setStringParam(NDDriverVersion,   versionString);
+    setStringParam(ADSDKVersion,      MagickLibVersionText);
+    setStringParam(ADSerialNumber,    "No serial number");
     setStringParam(ADFirmwareVersion, "No firmware");
+    setIntegerParam(useCurl,          0);
+    setIntegerParam(curlOptHttp,      0);
+    setIntegerParam(curlOptSSLHost,   2);
+    setIntegerParam(curlOptSSLPeer,   1);
+    setIntegerParam(curlValidAuth,    0);
     if (status) {
         printf("%s: unable to set camera parameters\n", functionName);
         return;

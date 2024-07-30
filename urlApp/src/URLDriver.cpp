@@ -117,7 +117,18 @@ asynStatus URLDriver::readImage()
 
     if (strlen(URLString) == 0) return(asynError);
     try {
-        image.read(URLString);
+        if (usecurl){
+            res = curl_easy_perform(curl);
+            if(res != CURLE_OK) {
+                asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s:%s: curl read error %d\n", 
+                    driverName, functionName, res);
+            return(asynError);
+            }
+            Blob blob(&readBuffer[0], readBuffer.size());
+            image.read(blob);
+        } else {
+            image.read(URLString);
+        }
         imageType = image.type();
         depth = image.depth();
         nrows = image.rows();

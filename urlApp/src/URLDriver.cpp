@@ -360,7 +360,7 @@ asynStatus URLDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
         curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CurlHttpOptions[curlVal]);
     } else if (function == curlOptSSLHost) {
         getIntegerParam(curlOptSSLHost, &curlVal);
-        curl_easy_setopt(curl, CURLOPT_HTTPAUTH, (long)curlVal);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, (long)curlVal);
     } else if (function == curlOptSSLPeer) {
         getIntegerParam(curlOptSSLPeer, &curlVal);
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, (long)curlVal);
@@ -397,7 +397,6 @@ asynStatus URLDriver::writeOctet(asynUser *pasynUser, const char *value, size_t 
 
     } else if (function == curlAuthFile) {
         status |= setCurlAuth();
-        curl_easy_setopt(curl, CURLOPT_USERNAME, paramString);
     } else if (function == URLName) {
         getStringParam(URLName, MAX_CURLPARAM_CHARS, paramString);
         curl_easy_setopt(curl, CURLOPT_URL, paramString);
@@ -471,7 +470,7 @@ void URLDriver::initializeCurl() {
     }
 
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlWriteCallback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, readBuffer);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 
 }
 

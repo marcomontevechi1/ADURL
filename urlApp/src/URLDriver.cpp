@@ -91,8 +91,10 @@ private:
 
 size_t URLDriver::curlWriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
 {
-    ((std::vector<char>*)userp)->insert(((std::vector<char>*)userp)->end(), (char*)contents, (char*)contents + size * nmemb);
-    return size * nmemb;
+    int totalSize = size * nmemb;
+
+    ((std::vector<char>*)userp)->insert(((std::vector<char>*)userp)->end(), (char*)contents, (char*)contents + totalSize);
+    return totalSize;
 }
 
 asynStatus URLDriver::readImage()
@@ -118,6 +120,7 @@ asynStatus URLDriver::readImage()
     if (strlen(URLString) == 0) return(asynError);
     try {
         if (usecurl){
+            this->readBuffer.clear();
             res = curl_easy_perform(curl);
             if(res != CURLE_OK) {
                 asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s:%s: curl read error %d\n", 

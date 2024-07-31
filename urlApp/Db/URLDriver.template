@@ -159,7 +159,80 @@ record(seq, "$(P)$(R)URLSeq")
     field(LNKA, "$(P)$(R)URL10.PROC PP MS")
 }
 
+record (bo, "$(P)$(R)UseCurl")
+{
+    field(DESC, "Toggle curl usage")
+    field(DTYP, "asynInt32")
+    field(PINI, "YES")
+    field(ZNAM, "NO")
+    field(ONAM, "YES")
+    field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))USE_CURL")
+    info(autosaveFields, "VAL ZRST ONST TWST THST")
+}
 
+record (mbbo, "$(P)$(R)CurlOptHTTPAuth")
+{
+    field(DESC, "Set CURLOPT_HTTPAUTH")
+    field(DTYP, "asynInt32")
+    field(ZRST, "CURLAUTH_BASIC")
+    field(ZRVL, "0")
+    field(ONST, "CURLAUTH_DIGEST")
+    field(ONVL, "1")
+    field(TWST, "CURLAUTH_DIGEST_IE")
+    field(TWVL, "2")
+    field(THST, "CURLAUTH_BEARER")
+    field(THVL, "3")
+    field(FRST, "CURLAUTH_NEGOTIATE")
+    field(FRVL, "4")
+    field(FVST, "CURLAUTH_NTLM")
+    field(FVVL, "5")
+    field(SXST, "CURLAUTH_NTLM_WB")
+    field(SXVL, "6")
+    field(SVST, "CURLAUTH_ANY")
+    field(SVVL, "7")
+    field(EIST, "CURLAUTH_ANYSAFE")
+    field(EIVL, "8")
+    field(NIST, "CURLAUTH_ONLY")
+    field(NIVL, "9")
+    field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))ASYN_CURLOPT_HTTPAUTH")
+}
 
+record (mbbo, "$(P)$(R)CurlOptSSLHost")
+{
+    field(DESC, "Verify Host SSL certificate")
+    field(DTYP, "asynInt32")
+    field(ZRST, "NO")
+    field(ZRVL, "0")
+    field(TWST, "YES")
+    field(TWVL, "2")
+    field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))ASYN_CURLOPT_SSL_VERIFYHOST")
+}
 
+record (bo, "$(P)$(R)CurlOptSSLPeer")
+{
+    field(DESC, "Verify SSL peer")
+    field(DTYP, "asynInt32")
+    field(PINI, "YES")
+    field(ZNAM, "NO")
+    field(ONAM, "YES")
+    field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))ASYN_CURLOPT_SSL_VERIFYPEER")
+}
 
+record(waveform, "$(P)$(R)CurlAuthFile") 
+{
+    field(DESC,  "TOML file with auth. credentials")
+    field(DTYP,  "asynOctetWrite")
+    field(INP,   "@asyn($(PORT),$(ADDR),$(TIMEOUT))ASYN_CURL_AUTHFILE")
+    field(FTVL,  "CHAR")
+    field(NELM,  "256")
+}
+
+record (bi, "$(P)$(R)CurlValidAuth")
+{
+    field(DESC, "Is Curl authentication valid?")
+    field(DTYP, "asynInt32")
+    field(ZNAM, "NO")
+    field(ONAM, "YES")
+    field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))ASYN_CURL_VALID_AUTH")
+    field(SCAN, "I/O Intr")
+}

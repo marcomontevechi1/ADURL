@@ -22,13 +22,16 @@
 #include <Magick++.h>
 using namespace Magick;
 
+#include <curl/curl.h>
+#include <toml.hpp>
+
 #include "ADDriver.h"
 
 #include <epicsExport.h>
 
 #define DRIVER_VERSION      2
 #define DRIVER_REVISION     3
-#define DRIVER_MODIFICATION 0
+#define DRIVER_MODIFICATION 1
 
 static const char *driverName = "URLDriver";
 
@@ -40,12 +43,23 @@ public:
 
     /* These are the methods that we override from ADDriver */
     virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
+    virtual asynStatus writeOctet(asynUser *pasynUser, const char *value, size_t nChars, size_t *nActual);
     virtual void report(FILE *fp, int details);
+    asynStatus setCurlAuth();
+    static size_t curlWriteCallback(void* contents, size_t size, size_t nmemb, void* userp);
+    void initializeCurl();
     void URLTask(); /**< Should be private, but gets called from C, so must be public */
 
 protected:
     int URLName;
+    int useCurl;
+    int curlOptHttp;
+    int curlOptSSLHost;
+    int curlOptSSLPeer;
+    int curlAuthFile;
+    int curlValidAuth;
     #define FIRST_URL_DRIVER_PARAM URLName
+    #define MAX_CURLPARAM_CHARS 256
 
 private:
     /* These are the methods that are new to this class */
@@ -55,14 +69,38 @@ private:
     Image image;
     epicsEventId startEventId;
     epicsEventId stopEventId;
+
+    /*Curl pointer and buffer*/
+    CURL *curl = NULL;
+    CURLcode res;
+    std::vector<char> readBuffer;
+
+    /*Array to translate Curl options*/
+    long unsigned int CurlHttpOptions [10] = {CURLAUTH_BASIC, CURLAUTH_DIGEST, CURLAUTH_DIGEST_IE, CURLAUTH_BEARER, 
+                         CURLAUTH_NEGOTIATE, CURLAUTH_NTLM, CURLAUTH_NTLM_WB, CURLAUTH_ANY, 
+                         CURLAUTH_ANYSAFE, CURLAUTH_ONLY};
 };
 
-#define URLNameString "URL_NAME"
+#define URLNameString         "URL_NAME"
+#define UseCurlString         "USE_CURL"
+#define CurlOptHttpAuthString "ASYN_CURLOPT_HTTPAUTH"
+#define CurlOptSSLVerifyHost  "ASYN_CURLOPT_SSL_VERIFYHOST"
+#define CurlOptSSLVerifyPeer  "ASYN_CURLOPT_SSL_VERIFYPEER"
+#define CurlAuthFileString    "ASYN_CURL_AUTHFILE"
+#define CurlValidAuthString   "ASYN_CURL_VALID_AUTH"
 
+size_t URLDriver::curlWriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
+{
+    int totalSize = size * nmemb;
+
+    ((std::vector<char>*)userp)->insert(((std::vector<char>*)userp)->end(), (char*)contents, (char*)contents + totalSize);
+    return totalSize;
+}
 
 asynStatus URLDriver::readImage()
 {
     char URLString[MAX_FILENAME_LEN];
+    int usecurl;
     size_t dims[3];
     int ndims;
     int nrows, ncols;
@@ -77,9 +115,23 @@ asynStatus URLDriver::readImage()
     static const char *functionName = "readImage";
     
     getStringParam(URLName, sizeof(URLString), URLString);
+    getIntegerParam(useCurl, &usecurl);
+
     if (strlen(URLString) == 0) return(asynError);
     try {
-        image.read(URLString);
+        if (usecurl){
+            this->readBuffer.clear();
+            res = curl_easy_perform(curl);
+            if(res != CURLE_OK) {
+                asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s:%s: curl read error %d\n", 
+                    driverName, functionName, res);
+            return(asynError);
+            }
+            Blob blob(&readBuffer[0], readBuffer.size());
+            image.read(blob);
+        } else {
+            image.read(URLString);
+        }
         imageType = image.type();
         depth = image.depth();
         nrows = image.rows();
@@ -298,6 +350,7 @@ asynStatus URLDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
 {
     int function = pasynUser->reason;
     int adstatus;
+    int curlVal;
     asynStatus status = asynSuccess;
 
     /* Set the parameter and readback in the parameter library.  This may be overwritten when we read back the
@@ -316,6 +369,15 @@ asynStatus URLDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
             /* Send the stop event */
             epicsEventSignal(this->stopEventId);
         }
+    } else if (function == curlOptHttp) {
+        getIntegerParam(curlOptHttp, &curlVal);
+        curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CurlHttpOptions[curlVal]);
+    } else if (function == curlOptSSLHost) {
+        getIntegerParam(curlOptSSLHost, &curlVal);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, (long)curlVal);
+    } else if (function == curlOptSSLPeer) {
+        getIntegerParam(curlOptSSLPeer, &curlVal);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, (long)curlVal);
     } else {
         /* If this parameter belongs to a base class call its method */
         if (function < FIRST_URL_DRIVER_PARAM) status = ADDriver::writeInt32(pasynUser, value);
@@ -335,7 +397,56 @@ asynStatus URLDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
     return status;
 }
 
+asynStatus URLDriver::writeOctet(asynUser *pasynUser, const char *value, size_t nChars, size_t *nActual)
+{
 
+    int addr = 0;
+    int function = pasynUser->reason;
+    int status = 0;
+    char paramString[MAX_CURLPARAM_CHARS] = {'\0'};
+    
+    setStringParam(addr, function, (char *)value);
+    if (function < FIRST_URL_DRIVER_PARAM) {
+        status |= ADDriver::writeOctet(pasynUser, value, nChars, nActual);
+
+    } else if (function == curlAuthFile) {
+        status |= setCurlAuth();
+    } else if (function == URLName) {
+        getStringParam(URLName, MAX_CURLPARAM_CHARS, paramString);
+        curl_easy_setopt(curl, CURLOPT_URL, paramString);
+    }
+
+    callParamCallbacks(addr);
+    *nActual = nChars;
+    return (asynStatus)status;
+
+}
+
+asynStatus URLDriver::setCurlAuth()
+{
+
+    int status = 0;
+    char paramString[MAX_CURLPARAM_CHARS] = {'\0'};
+    getStringParam(curlAuthFile, MAX_CURLPARAM_CHARS, paramString);
+
+    setIntegerParam(curlValidAuth, 0);
+    
+    try{
+      const toml::value toml_file = toml::parse(paramString);
+      setIntegerParam(curlValidAuth, 1);
+      curl_easy_setopt(curl, CURLOPT_USERNAME, toml_file.at("user").as_string().c_str());
+      curl_easy_setopt(curl, CURLOPT_PASSWORD, toml_file.at("password").as_string().c_str());
+    } catch(const toml::syntax_error& err) {
+        status = (int)asynError;
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
+                  "%s:%s: ERROR: toml syntax error in file %s with error message from toml.hpp: %s.\n", driverName, __func__,
+                                                                                                  paramString, err.what());
+    }
+    
+
+    return (asynStatus)status;
+
+}
 
 
 /** Report status of the driver.
@@ -361,6 +472,20 @@ void URLDriver::report(FILE *fp, int details)
     }
     /* Invoke the base class method */
     ADDriver::report(fp, details);
+}
+
+void URLDriver::initializeCurl() {
+
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+    this->curl = curl_easy_init();
+    if (!curl){
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
+                  "%s:%s: ERROR, cannot initialize curl pointer.\n", driverName, __func__);
+    }
+
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlWriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+
 }
 
 /** Constructor for URLDriver; most parameters are simply passed to ADDriver::ADDriver.
@@ -401,17 +526,28 @@ URLDriver::URLDriver(const char *portName, int maxBuffers, size_t maxMemory,
         return;
     }
 
-    createParam(URLNameString,      asynParamOctet, &URLName);
+    createParam(URLNameString,         asynParamOctet, &URLName);
+    createParam(UseCurlString,         asynParamInt32, &useCurl);
+    createParam(CurlOptHttpAuthString, asynParamInt32, &curlOptHttp);
+    createParam(CurlOptSSLVerifyHost,  asynParamInt32, &curlOptSSLHost);
+    createParam(CurlOptSSLVerifyPeer,  asynParamInt32, &curlOptSSLPeer);
+    createParam(CurlAuthFileString,    asynParamOctet, &curlAuthFile);
+    createParam(CurlValidAuthString,   asynParamInt32, &curlValidAuth);
 
     /* Set some default values for parameters */
     status =  setStringParam (ADManufacturer, "URL Driver");
     status |= setStringParam (ADModel, "GraphicsMagick");
     epicsSnprintf(versionString, sizeof(versionString), "%d.%d.%d", 
                   DRIVER_VERSION, DRIVER_REVISION, DRIVER_MODIFICATION);
-    setStringParam(NDDriverVersion, versionString);
-    setStringParam(ADSDKVersion, MagickLibVersionText);
-    setStringParam(ADSerialNumber, "No serial number");
+    setStringParam(NDDriverVersion,   versionString);
+    setStringParam(ADSDKVersion,      MagickLibVersionText);
+    setStringParam(ADSerialNumber,    "No serial number");
     setStringParam(ADFirmwareVersion, "No firmware");
+    setIntegerParam(useCurl,          0);
+    setIntegerParam(curlOptHttp,      0);
+    setIntegerParam(curlOptSSLHost,   2);
+    setIntegerParam(curlOptSSLPeer,   1);
+    setIntegerParam(curlValidAuth,    0);
     if (status) {
         printf("%s: unable to set camera parameters\n", functionName);
         return;
@@ -428,6 +564,9 @@ URLDriver::URLDriver(const char *portName, int maxBuffers, size_t maxMemory,
             driverName, functionName);
         return;
     }
+
+    this->initializeCurl();
+
 }
 
 /** Configuration command, called directly or from iocsh */

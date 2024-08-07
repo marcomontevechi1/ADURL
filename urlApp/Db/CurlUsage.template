@@ -20,6 +20,15 @@ record(waveform, "$(P)$(R)CurlConfigPath")
     field(NELM, "128")
 }
 
+record (bo, "$(P)$(R)CurlLoadConfig")
+{
+    field(DESC, "Load curl configuration from file")
+    field(DTYP, "asynInt32")
+    field(ZNAM, "0")
+    field(ONAM, "1")
+    field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))CURL_LOAD_CONFIG")
+}
+
 record(waveform, "$(P)$(R)CurlConfigFile")
 {
     field(DESC, "Name for file with curl configuration")

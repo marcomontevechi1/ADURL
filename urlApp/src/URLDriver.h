@@ -32,6 +32,7 @@ protected:
     int useCurl;
     int curlConfigPath;
     int curlConfigFile;
+    int curlLoadConfig;
     int curlOptHttpAuth;
     int curlOptSSLVerifyHost;
     int curlOptSSLVerifyPeer;
@@ -45,6 +46,8 @@ protected:
     long unsigned int CurlHttpOptions [11] = {CURLAUTH_BASIC, CURLAUTH_DIGEST, CURLAUTH_DIGEST_IE, CURLAUTH_BEARER,
                          CURLAUTH_NEGOTIATE, CURLAUTH_NTLM, CURLAUTH_NTLM_WB, CURLAUTH_ANY,
                          CURLAUTH_ANYSAFE, CURLAUTH_ONLY, CURLAUTH_AWS_SIGV4};
+
+    asynStatus loadCurlConfig();
     #endif
 
 private:
@@ -63,6 +66,7 @@ private:
     #define UseCurlString              "USE_CURL"
     #define CurlConfigPathString       "CURL_CONFIG_PATH"
     #define CurlConfigFileString       "CURL_CONFIG_FILE"
+    #define CurlLoadConfigString       "CURL_LOAD_CONFIG"
     #define CurlOptHttpAuthString      "ASYN_CURLOPT_HTTPAUTH"
     #define CurlOptSSLVerifyHostString "ASYN_CURLOPT_SSL_VERIFYHOST"
     #define CurlOptSSLVerifyPeerString "ASYN_CURLOPT_SSL_VERIFYPEER"

@@ -11,6 +11,24 @@ record (bo, "$(P)$(R)UseCurl")
     info(autosaveFields, "VAL")
 }
 
+record(waveform, "$(P)$(R)CurlConfigPath")
+{
+    field(DESC, "Path for file with curl configuration")
+    field(DTYP, "asynOctetWrite")
+    field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))CURL_CONFIG_PATH")
+    field(FTVL, "CHAR")
+    field(NELM, "128")
+}
+
+record(waveform, "$(P)$(R)CurlConfigFile")
+{
+    field(DESC, "Name for file with curl configuration")
+    field(DTYP, "asynOctetWrite")
+    field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))CURL_CONFIG_FILE")
+    field(FTVL, "CHAR")
+    field(NELM, "128")
+}
+
 record (mbbo, "$(P)$(R)CurlOptHTTPAuth")
 {
     field(DESC, "Set CURLOPT_HTTPAUTH")

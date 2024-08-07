@@ -30,6 +30,8 @@ protected:
 
     #ifdef ADURL_USE_CURL
     int useCurl;
+    int curlConfigPath;
+    int curlConfigFile;
     int curlOptHttpAuth;
     int curlOptSSLVerifyHost;
     int curlOptSSLVerifyPeer;
@@ -59,6 +61,8 @@ private:
 
 #ifdef ADURL_USE_CURL
     #define UseCurlString              "USE_CURL"
+    #define CurlConfigPathString       "CURL_CONFIG_PATH"
+    #define CurlConfigFileString       "CURL_CONFIG_FILE"
     #define CurlOptHttpAuthString      "ASYN_CURLOPT_HTTPAUTH"
     #define CurlOptSSLVerifyHostString "ASYN_CURLOPT_SSL_VERIFYHOST"
     #define CurlOptSSLVerifyPeerString "ASYN_CURLOPT_SSL_VERIFYPEER"

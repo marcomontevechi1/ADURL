@@ -418,6 +418,8 @@ URLDriver::URLDriver(const char *portName, int maxBuffers, size_t maxMemory,
 
     #ifdef ADURL_USE_CURL
     createParam(UseCurlString,              asynParamInt32, &useCurl);
+    createParam(CurlConfigPathString,       asynParamOctet, &curlConfigPath);
+    createParam(CurlConfigFileString,       asynParamOctet, &curlConfigFile);
     createParam(CurlOptHttpAuthString,      asynParamInt32, &curlOptHttpAuth);
     createParam(CurlOptSSLVerifyHostString, asynParamInt32, &curlOptSSLVerifyHost);
     createParam(CurlOptSSLVerifyPeerString, asynParamInt32, &curlOptSSLVerifyPeer);
@@ -428,8 +430,8 @@ URLDriver::URLDriver(const char *portName, int maxBuffers, size_t maxMemory,
     setIntegerParam(curlOptHttpAuth,      0);
     setIntegerParam(curlOptSSLVerifyHost, 2L);
     setIntegerParam(curlOptSSLVerifyPeer, 1);
-    setStringParam(curlOptUserName, "\0");
-    setStringParam(curlOptPassword, "\0");
+    setStringParam(curlOptUserName,       "\0");
+    setStringParam(curlOptPassword,       "\0");
     this->initializeCurl();
     #endif
 
